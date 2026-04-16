@@ -1,0 +1,169 @@
+Initialization Phase:
+cpp
+void setup() {
+// Serial communication for debugging
+Serial.begin(115200);
+// GPIO pin configurations
+pinMode(motorPins, OUTPUT); pinMode(relayPins, OUTPUT); pinMode(TRIG_PIN,
+OUTPUT); pinMode(ECHO_PIN, INPUT);
+// Servo initialization
+seedServo.attach(SERVO_PIN); seedServo.write(0);
+// Wi-Fi connection
+connectWiFi();
+// Firebase initialization
+initializeFirebase();
+// Initial safe state
+stopMotors();
+allRelaysOff(); }
+Main Execution Loop:
+cpp
+void loop() {
+// Check obstacle status
+checkObstacle();
+if (!obstacleDetected) {
+if (Firebase.getString(firebaseData, "/Pesticide/direction"))
+{Stringdirection = firebaseData.stringData(); executeMovement(direction);
+}
+if (Firebase.getInt(firebaseData, "/Pesticide/Relay")) { intrelayValue = firebaseData.intData();
+executeRelay(relayValue); updateServo(relayValue);
+} } delay(100); // Loop delay for stability }
+Firebase Communication Functions
+Wi-Fi Connection:
+cpp
+void connectWiFi() { WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+while (WiFi.status() != WL_CONNECTED) { delay(500);
+Serial.print("."); }
+Serial.println("WiFi Connected"); }
+Firebase Initialization:
+cpp
+void initializeFirebase()
+{ Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+Firebase.reconnectWiFi(true);
+Firebase.setReadTimeout(firebaseData, 1000 * 60);
+Firebase.setwriteSizeLimit(firebaseData, "tiny");
+}
+Data Stream Handling:
+cpp
+void setupFirebaseStream() {
+if (!Firebase.beginStream(firebaseData, "/Pesticide"))
+{ Serial.println("Stream begin failed");
+Serial.println(firebaseData.errorReason());
+} }
+void handleStreamData()
+{
+if (Firebase.readStream(firebaseData))
+{
+if (firebaseData.dataType() == "int" || firebaseData.dataType() == "string")
+{
+processCommand(firebaseData.streamPath(),
+firebaseData.dataType()); }
+} }
+For Web Application (JavaScript):
+javascript
+// Firebase initialization
+const firebaseConfig = { apiKey: "YOUR_API_KEY",
+authDomain: "your-project.firebaseapp.com"
+, databaseURL: "https://your-project.firebaseio.com",
+projectId: "your-project-id" };
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+// Send direction command
+function sendDirection(dir)
+{
+database.ref('/Pesticide/direction').set(dir);
+}
+// Send relay command
+function selectImplement(relayNum)
+{
+database.ref('/Pesticide/Relay').set(relayNum);
+}
+// Monitor obstacle status
+database.ref('/Pesticide/Obstcale').
+on('value', (snapshot) =>{ constobstacleStatus = snapshot.val();
+updateObstacleUI(obstacleStatus)});
+For Mobile Application (Flutter):
+dart
+// Firebase initialization
+final databaseRef= FirebaseDatabase.instance.ref();
+// Send direction command
+void sendDirection(String direction) { databaseRef.child('Pesticide/direction').set(direction);
+}
+// Send relay command
+void selectImplement(int relayValue) { databaseRef.child('Pesticide/Relay').set(relayValue)
+}
+// Monitor obstacle status
+databaseRef.child('Pesticide/Obstcale').onValue.listen((event) { finalobstacleStatus=
+event.snapshot.value; updateObstacleUI(obstacleStatus);
+})
+Programming:
+cpp
+#include <Servo.h>
+Servo seedServo;
+void setup() {
+seedServo.attach(D11); // Attach to PWM pin
+seedServo.write(0); // Initial position: retracted }
+void positionServo(int relayValue) { if(relayValue == 3) {
+seedServo.write(90); // Seeding position }else {
+seedServo.write(0); // Retracted position }
+}
+Sample Control Interface Code:
+html
+<!DOCTYPEhtml>
+<html>
+<head>
+<title>AgroVehicleControl</title>
+<scriptsrc="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+<scriptsrc="https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js"></script>
+</head>
+<body>
+<h1>IoTAgriculturalRobotControl</h1>
+<divid="movement-control">
+<h2>Movement</h2>
+<buttononclick="sendDirection('F')">Forward</button>
+<buttononclick="sendDirection('B')">Backward</button>
+<buttononclick="sendDirection('L')">Left</button>
+<buttononclick="sendDirection('R')">Right</button>
+<buttononclick="sendDirection('S')"style="background-color:red;">STOP</button>
+</div>
+<divid="implement-control">
+<h2>ImplementSelection</h2>
+<buttononclick="selectImplement(0)">Standby</button>
+<buttononclick="selectImplement(1)">GrassCutting</button>
+<buttononclick="selectImplement(2)">Spraying</button>
+<buttononclick="selectImplement(3)">Seeding</button>
+</div
+ <divid="status-display">
+<h2>Status</h2>
+<p>ObstacleDetected:<spanid="obstacle-status">No</span></p>
+<p>ServoPosition:<spanid="servo-status">0°</span></p>
+</div>
+<script>
+//Firebaseconfiguration
+const firebaseConfig= {
+apiKey:"YOUR_API_K
+EY",
+databaseURL:"https://YOUR_PROJECT.firebaseio.com"
+};
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+function sendDirection(dir) {
+database.ref('/Pesticide/direction').set(dir);
+}
+function selectImplement(relay) {
+database.ref('/Pesticide/Relay').set(relay);
+}
+//Monitorobstaclestatus
+database.ref('/Pesticide/Obstcale').on('value',(snapshot)=>{
+conststatus = snapshot.val();
+document.getElementById('obstacle-status').textContent=status==1?"YES":"No";
+if (status == 1) {
+alert("OBSTACLEDETECTED!");
+}
+});
+database.ref('/Pesticide/Servo').on('value',(snapshot)=
+>{ conststatus = snapshot.val();
+document.getElementById('servo-status').textContent=status==1?"90°":"0°";
+});
+</script>
+ </body>
+ </htm
